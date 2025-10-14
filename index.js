@@ -30,7 +30,13 @@ const startServer = async () => {
       duration: { type: String, required: true },
       date: {
         type: String,
-        // default: () => new Date().toISOString().split("T")[0],
+      },
+
+      //Stores the ID of the parent User document
+      refId: {
+        type: mongoose.Schema.Types.ObjectId, // Defines the type as an ObjectId
+        ref: "userModel", // The collection this ID references
+        required: true,
       },
     });
 
@@ -85,7 +91,7 @@ const startServer = async () => {
           description: req.body.description,
           duration: +req.body.duration,
           date: req.body.date || todaysDate,
-          _id: userId,
+          refId: userId,
         });
         //
         await newExercise.save();
@@ -110,13 +116,17 @@ const startServer = async () => {
     app.get("/api/users/:_id/logs", async (req, res) => {
       const requiredId = req.params["_id"];
       const requiredUser = await userModel.findById(requiredId);
-      const requiredExercise = await exerciseModel.find({ requiredId });
+      const requiredExercise = await exerciseModel.find({ refId: requiredId });
       const count = requiredExercise.length;
       const logsResponse = {
         username: requiredUser.username,
         count: count,
         _id: requiredId,
-        logs: requiredExercise,
+        logs: requiredExercise.map((exercise) => ({
+          duration: exercise.duration,
+          description: exercise.description,
+          date: exercise.date,
+        })),
       };
 
       if (logsResponse) {
