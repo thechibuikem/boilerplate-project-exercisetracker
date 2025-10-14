@@ -27,7 +27,7 @@ const startServer = async () => {
 
     const exerciseSchema = new mongoose.Schema({
       description: { type: String, required: true },
-      duration: { type: String, required: true },
+      duration: { type: Number, required: true },
       date: {
         type: String,
       },
@@ -65,7 +65,6 @@ const startServer = async () => {
             res.json(savedUser);
           } else {
             console.log("duplicate user entry detected");
-            process.exit(1);
           }
         } catch (err) {
           console.error("error creating and saving user", err);
@@ -89,7 +88,7 @@ const startServer = async () => {
       try {
         const newExercise = new exerciseModel({
           description: req.body.description,
-          duration: +req.body.duration,
+          duration: Number(req.body.duration),
           date: req.body.date || todaysDate,
           refId: userId,
         });
@@ -122,7 +121,7 @@ const startServer = async () => {
         username: requiredUser.username,
         count: count,
         _id: requiredId,
-        logs: requiredExercise.map((exercise) => ({
+        log: requiredExercise.map((exercise) => ({
           duration: exercise.duration,
           description: exercise.description,
           date: exercise.date,
