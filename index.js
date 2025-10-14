@@ -1,18 +1,138 @@
-const express = require('express')
-const app = express()
-const cors = require('cors')
-require('dotenv').config()
+// importing dependencies
+const express = require("express");
+const app = express();
+const cors = require("cors");
+require("dotenv").config();
+const connectDB = require("./db");
+const { default: mongoose } = require("mongoose");
+const date = new Date();
+const todaysDate = date.toISOString().split("T")[0];
 
-app.use(cors())
-app.use(express.static('public'))
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/views/index.html')
-});
+// asynchronous function to start server
+const startServer = async () => {
+  try {
+    await connectDB(); // start server first
 
+    // mounting middleware after starting server
+    app.use(cors());
+    app.use(express.static("public"));
+    app.use(express.urlencoded({ extended: false }));
 
+    // once we've started server, mounted middlewares. Let's roll
 
+    // creating schemas for mongodb
+    const userSchema = new mongoose.Schema({
+      username: { type: String, required: true },
+    });
 
+    const exerciseSchema = new mongoose.Schema({
+      description: { type: String, required: true },
+      duration: { type: String, required: true },
+      date: {
+        type: String,
+        // default: () => new Date().toISOString().split("T")[0],
+      },
+    });
 
-const listener = app.listen(process.env.PORT || 3000, () => {
-  console.log('Your app is listening on port ' + listener.address().port)
-})
+    // creating a model that would use Schema
+    const userModel = mongoose.model("userModel", userSchema);
+    const exerciseModel = mongoose.model("exerciseModel", exerciseSchema);
+
+    // handling routes
+    app.get("/", (req, res) => {
+      res.sendFile(__dirname + "/views/index.html");
+    });
+
+    // when a push is made to add a user
+    app
+      .route("/api/users")
+      .post(async (req, res) => {
+        // conditionally creating a new user with the requested username, only if user doesn't exist already
+        try {
+          const existingMatchUser = await userModel.findOne({
+            username: req.body.username,
+          });
+          if (!existingMatchUser) {
+            let newUser = new userModel({ username: req.body.username });
+            let savedUser = await newUser.save();
+            console.log("saved new user successfully");
+            res.json(savedUser);
+          } else {
+            console.log("duplicate user entry detected");
+            process.exit(1);
+          }
+        } catch (err) {
+          console.error("error creating and saving user", err);
+          res.status(400).json({ error: "User already exists" });
+        }
+      })
+      // chaining a get request to output all existing users to our console
+      .get(async (req, res) => {
+        try {
+          const allUsers = await userModel.find();
+          res.send(allUsers);
+        } catch (err) {
+          console.error("error fetching all users", err);
+        }
+      });
+
+    // Adding exercises and stuffs to a user that already exists
+    app.post("/api/users/:_id/exercises", async (req, res) => {
+      let userId = req.params["_id"];
+
+      try {
+        const newExercise = new exerciseModel({
+          description: req.body.description,
+          duration: +req.body.duration,
+          date: req.body.date || todaysDate,
+          _id: userId,
+        });
+        //
+        await newExercise.save();
+        //
+        if (newExercise) {
+          const user = await userModel.findById(userId);
+          res.json({
+            _id: user._id,
+            username: user.username,
+            date: newExercise.date,
+            duration: newExercise.duration,
+            description: newExercise.description,
+          });
+        } else {
+          res.status(400).json;
+        }
+      } catch (err) {
+        console.error("error updating users record", err);
+      }
+    });
+
+    app.get("/api/users/:_id/logs", async (req, res) => {
+      const requiredId = req.params["_id"];
+      const requiredUser = await userModel.findById(requiredId);
+      const requiredExercise = await exerciseModel.find({ requiredId });
+      const count = requiredExercise.length;
+      const logsResponse = {
+        username: requiredUser.username,
+        count: count,
+        _id: requiredId,
+        logs: requiredExercise,
+      };
+
+      if (logsResponse) {
+        res.json(logsResponse);
+      }
+    });
+
+    //when we are done with handling routes and shii, we'd start our server
+
+    const listener = app.listen(process.env.PORT || 5000, () => {
+      console.log("Your app is listening on port " + listener.address().port);
+    });
+  } catch (err) {
+    console.error("error whilst starting server", err);
+    process.exit(1);
+  }
+};
+
+startServer();
