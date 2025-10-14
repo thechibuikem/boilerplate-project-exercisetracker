@@ -113,10 +113,30 @@ const startServer = async () => {
     });
 
     app.get("/api/users/:_id/logs", async (req, res) => {
+      const {from,to,limit} =res.query
       const requiredId = req.params["_id"];
       const requiredUser = await userModel.findById(requiredId);
       const requiredExercise = await exerciseModel.find({ refId: requiredId });
       const count = requiredExercise.length;
+
+      // Filter by date if "from" or "to" provided
+  if (from) {
+    const fromDate = new Date(from);
+    exercises = exercises.filter(e => new Date(e.date) >= fromDate);
+  }
+  if (to) {
+    const toDate = new Date(to);
+    exercises = exercises.filter(e => new Date(e.date) <= toDate);
+  }
+
+  // Limit if provided
+  if (limit) {
+    exercises = exercises.slice(0, Number(limit));
+  }
+
+
+      
+      // what this endpoint is actually
       const logsResponse = {
         username: requiredUser.username,
         count: count,
@@ -124,7 +144,7 @@ const startServer = async () => {
         log: requiredExercise.map((exercise) => ({
           duration: exercise.duration,
           description: exercise.description,
-          date: exercise.date,
+          date: new Date(exercise.date).toDateString(),
         })),
       };
 
