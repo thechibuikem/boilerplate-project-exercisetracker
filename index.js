@@ -119,12 +119,10 @@ const startServer = async () => {
       const requiredExercise = await exerciseModel.find({ refId: requiredId });
       const count = requiredExercise.length;
 
-      //     // Filter by date if "from" or "to" provided
-
       let logs = requiredExercise.map((exercise) => ({
         description: exercise.description,
         duration: exercise.duration,
-        date: exercise.date,
+        date: new Date(exercise.date).toDateString(),
       }));
       //
       // if (from) {
