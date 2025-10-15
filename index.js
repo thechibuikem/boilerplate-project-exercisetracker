@@ -114,7 +114,7 @@ const startServer = async () => {
 
     // outputting user logs
     app.get("/api/users/:_id/logs", async (req, res) => {
-      const { from, to, limit } = res.query;
+      const { from, to, limit } = req.query;
       const requiredId = req.params["_id"];
       const requiredUser = await userModel.findById(requiredId);
       let requiredExercise = await exerciseModel.find({ refId: requiredId });
@@ -136,7 +136,7 @@ const startServer = async () => {
 
       // Limit results
       if (limit) {
-        exercises = exercises.slice(0, Number(limit));
+        requiredExercise = requiredExercise.slice(0, Number(limit));
       }
 
       const count = requiredExercise.length;
