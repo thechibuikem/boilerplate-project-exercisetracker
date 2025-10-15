@@ -112,11 +112,33 @@ const startServer = async () => {
       }
     });
 
+    // outputting user logs
     app.get("/api/users/:_id/logs", async (req, res) => {
-      // const { from, to, limit } = res.query;
+      const { from, to, limit } = res.query;
       const requiredId = req.params["_id"];
       const requiredUser = await userModel.findById(requiredId);
-      const requiredExercise = await exerciseModel.find({ refId: requiredId });
+      let requiredExercise = await exerciseModel.find({ refId: requiredId });
+
+      // filtering by from, if a from parameter is added update my requiredexercise array to be a version of itself, where the date of this exersie isgreater than or equal to this from date
+      if (from) {
+        const fromDate = new Date(from);
+        requiredExercise = requiredExercise.filter(
+          (e) => new Date(e.date) >= fromDate
+        );
+      }
+
+      if (to) {
+        const toDate = new Date(to);
+        requiredExercise = requiredExercise.filter(
+          (e) => new Date(e.date) <= toDate
+        );
+      }
+
+      // Limit results
+      if (limit) {
+        exercises = exercises.slice(0, Number(limit));
+      }
+
       const count = requiredExercise.length;
 
       let logs = requiredExercise.map((exercise) => ({
